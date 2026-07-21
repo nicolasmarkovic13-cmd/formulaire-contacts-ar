@@ -281,6 +281,15 @@ function formatDateFR(dateStr) {
   return `${d}/${m}/${y}`;
 }
 
+// Formate la date du jour (Date object) en JJ/MM/AAAA
+function formatTodayFR() {
+  const now = new Date();
+  const jj = pad(now.getDate());
+  const mm = pad(now.getMonth() + 1);
+  const aaaa = now.getFullYear();
+  return `${jj}/${mm}/${aaaa}`;
+}
+
 function pad(n) {
   return n.toString().padStart(2, '0');
 }
@@ -305,15 +314,16 @@ genBtn.addEventListener('click', () => {
   const motif = motifInput.value.trim();
   const dateReunion = formatDateFR(document.getElementById('dateReunion').value);
   const client = document.getElementById('client').value.trim();
+  const dateEnvoiFormulaire = formatTodayFR();
 
   const rows = getParticipantRows().filter(r => r.filledCount === 3);
 
   const data = [
-    ['Email_AR', 'Prestation', 'Motif_envoi', 'Date_reunion', 'Client', 'Nom', 'Prenom', 'Email']
+    ['Email_AR', 'Prestation', 'Motif_envoi', 'Date_reunion', 'Client', 'Date_envoi_formulaire', 'Nom', 'Prenom', 'Email']
   ];
 
   rows.forEach(r => {
-    data.push([emailAR, prestation, motif, dateReunion, client, r.nom, r.prenom, r.email]);
+    data.push([emailAR, prestation, motif, dateReunion, client, dateEnvoiFormulaire, r.nom, r.prenom, r.email]);
   });
 
   const ws = XLSX.utils.aoa_to_sheet(data);
