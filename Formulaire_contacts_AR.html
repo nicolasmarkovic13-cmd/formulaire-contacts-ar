@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Formulaire Import Contacts</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: #f4f5f7;
+    margin: 0;
+    padding: 30px;
+    color: #222;
+  }
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    padding: 30px;
+  }
+  h1 {
+    font-size: 20px;
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #1f2d3d;
+  }
+  .header-fields {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 10px 15px;
+    align-items: center;
+    margin-bottom: 25px;
+  }
+  .header-fields label {
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .header-fields input,
+  .header-fields select {
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 100%;
+    font-family: inherit;
+  }
+  .header-fields input[readonly] {
+    background: #e0e0e0;
+    color: #555;
+    cursor: not-allowed;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+  th {
+    background: #d9d9d9;
+    padding: 6px;
+    font-size: 13px;
+    text-align: left;
+    border: 1px solid #bbb;
+  }
+  td {
+    border: 1px solid #ddd;
+    padding: 3px;
+  }
+  td.label {
+    background: #f0f0f0;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 6px;
+    white-space: nowrap;
+  }
+  td input {
+    width: 100%;
+    padding: 5px 6px;
+    border: none;
+    font-size: 13px;
+  }
+  td input:focus {
+    outline: 2px solid #4a90d9;
+  }
+  .row-invalid td input {
+    background: #ffecec;
+  }
+  #genBtn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background: #2e7d32;
+    color: #fff;
+    transition: background 0.2s;
+  }
+  #genBtn:disabled {
+    background: #b0b0b0;
+    cursor: not-allowed;
+  }
+  #genBtn:not(:disabled):hover {
+    background: #256428;
+  }
+  #status {
+    margin-top: 12px;
+    font-size: 13px;
+    color: #b00020;
+    min-height: 18px;
+  }
+  .table-wrap {
+    max-height: 500px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Formulaire d'import de contacts</h1>
+
+  <div class="header-fields">
+    <label for="emailAR">Email AR :</label>
+    <input type="text" id="emailAR" placeholder="Adresse email AR">
+
+    <label for="prestation">Prestation :</label>
+    <select id="prestation">
+      <option value="">-- Sélectionner --</option>
+      <option value="ART">ART</option>
+      <option value="ARC">ARC</option>
+      <option value="DDT">DDT</option>
+      <option value="BCC">BCC</option>
+      <option value="Alternance">Alternance</option>
+    </select>
+
+    <label for="motif">Motif :</label>
+    <input type="text" id="motif" placeholder="Motif" readonly>
+
+    <label for="dateReunion">Date réunion :</label>
+    <input type="date" id="dateReunion">
+
+    <label for="client">Client :</label>
+    <input type="text" id="client" placeholder="Client">
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:120px;">Participant</th>
+          <th>Nom</th>
+          <th>Prénom</th>
+          <th>Email</th>
+        </tr>
+      </thead>
+      <tbody id="participantsBody">
+      </tbody>
+    </table>
+  </div>
+
+  <button id="genBtn" disabled>Générer le fichier Excel</button>
+  <div id="status"></div>
+</div>
+
+<script>
+const NB_PARTICIPANTS = 20;
+const tbody = document.getElementById('participantsBody');
+
+for (let i = 1; i <= NB_PARTICIPANTS; i++) {
+  const tr = document.createElement('tr');
+  tr.dataset.rowIndex = i;
+  tr.innerHTML = `
+    <td class="label">Participant ${i}</td>
+    <td><input type="text" class="nom" data-row="${i}"></td>
+    <td><input type="text" class="prenom" data-row="${i}"></td>
+    <td><input type="text" class="email" data-row="${i}"></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+const headerIds = ['emailAR', 'prestation', 'motif', 'dateReunion', 'client'];
+const genBtn = document.getElementById('genBtn');
+const statusDiv = document.getElementById('status');
+const prestationSelect = document.getElementById('prestation');
+const motifInput = document.getElementById('motif');
+
+const MOTIF_MAP = {
+  'ART': 'Recrutement',
+  'ARC': 'Recrutement',
+  'Alternance': 'Recrutement',
+  'DDT': 'Rendez-vous DDT',
+  'BCC': 'Rendez-vous BCC'
+};
+
+function updateMotif() {
+  const val = prestationSelect.value;
+  motifInput.value = MOTIF_MAP[val] || '';
+  validateForm();
+}
+
+prestationSelect.addEventListener('change', updateMotif);
+
+function getParticipantRows() {
+  const rows = [];
+  document.querySelectorAll('#participantsBody tr').forEach(tr => {
+    const nom = tr.querySelector('.nom').value.trim();
+    const prenom = tr.querySelector('.prenom').value.trim();
+    const email = tr.querySelector('.email').value.trim();
+    const filledCount = [nom, prenom, email].filter(v => v !== '').length;
+    rows.push({ tr, nom, prenom, email, filledCount });
+  });
+  return rows;
+}
+
+function validateForm() {
+  let valid = true;
+  let message = '';
+
+  // Vérification des champs d'en-tête
+  const missingHeader = headerIds.filter(id => {
+    const el = document.getElementById(id);
+    return el.value.trim() === '';
+  });
+  if (missingHeader.length > 0) {
+    valid = false;
+    message = "Veuillez compléter tous les champs d'en-tête (Email AR à Client).";
+  }
+
+  // Vérification des lignes participants
+  const rows = getParticipantRows();
+  let hasIncompleteRow = false;
+  let completeRowsCount = 0;
+
+  rows.forEach(r => {
+    if (r.filledCount === 3) {
+      completeRowsCount++;
+      r.tr.classList.remove('row-invalid');
+    } else if (r.filledCount > 0) {
+      hasIncompleteRow = true;
+      r.tr.classList.add('row-invalid');
+    } else {
+      r.tr.classList.remove('row-invalid');
+    }
+  });
+
+  if (hasIncompleteRow) {
+    valid = false;
+    if (!message) message = "Chaque ligne Participant commencée doit avoir Nom, Prénom et Email renseignés.";
+  } else if (completeRowsCount === 0) {
+    valid = false;
+    if (!message) message = "Veuillez saisir au moins un participant complet (Nom, Prénom, Email).";
+  }
+
+  genBtn.disabled = !valid;
+  statusDiv.textContent = valid ? '' : message;
+
+  return { valid, completeRowsCount };
+}
+
+// Ecouteurs sur tous les champs
+document.querySelectorAll('input, select').forEach(input => {
+  input.addEventListener('input', validateForm);
+  input.addEventListener('change', validateForm);
+});
+
+function formatDateFR(dateStr) {
+  if (!dateStr) return '';
+  const [y, m, d] = dateStr.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function pad(n) {
+  return n.toString().padStart(2, '0');
+}
+
+function buildFileName() {
+  const now = new Date();
+  const jj = pad(now.getDate());
+  const mm = pad(now.getMonth() + 1);
+  const aa = pad(now.getFullYear() % 100);
+  const hh = pad(now.getHours());
+  const min = pad(now.getMinutes());
+  const ss = pad(now.getSeconds());
+  return `Data_import_contacts_${jj}${mm}${aa}-${hh}${min}${ss}.xlsx`;
+}
+
+genBtn.addEventListener('click', () => {
+  const { valid } = validateForm();
+  if (!valid) return;
+
+  const emailAR = document.getElementById('emailAR').value.trim();
+  const prestation = prestationSelect.value.trim();
+  const motif = motifInput.value.trim();
+  const dateReunion = formatDateFR(document.getElementById('dateReunion').value);
+  const client = document.getElementById('client').value.trim();
+
+  const rows = getParticipantRows().filter(r => r.filledCount === 3);
+
+  const data = [
+    ['Email_AR', 'Prestation', 'Motif_envoi', 'Date_reunion', 'Client', 'Nom', 'Prenom', 'Email']
+  ];
+
+  rows.forEach(r => {
+    data.push([emailAR, prestation, motif, dateReunion, client, r.nom, r.prenom, r.email]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Contacts');
+
+  const fileName = buildFileName();
+  XLSX.writeFile(wb, fileName);
+
+  alert(`Le fichier a bien été généré : ${fileName}`);
+});
+
+// Validation initiale
+validateForm();
+</script>
+
+</body>
+</html>
