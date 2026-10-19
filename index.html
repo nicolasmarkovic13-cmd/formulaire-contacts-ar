@@ -144,8 +144,8 @@
   <h1>Formulaire d'import de contacts</h1>
 
   <div class="header-fields">
-    <label for="emailAR">Email Consultant :</label>
-    <input type="text" id="emailAR" placeholder="Adresse email du consultant">
+    <label for="emailAR">Email AR :</label>
+    <input type="text" id="emailAR" placeholder="Adresse email AR">
 
     <label for="prestation">Prestation :</label>
     <select id="prestation">
@@ -196,6 +196,7 @@ const NB_PARTICIPANTS_MAX = 20;
 const tbody = document.getElementById('participantsBody');
 const nbSelect = document.getElementById('nbParticipants');
 const tableWrap = document.getElementById('tableWrap');
+const dateReunionInput = document.getElementById('dateReunion');
 
 // Remplissage du menu déroulant (1 à 20)
 for (let i = 1; i <= NB_PARTICIPANTS_MAX; i++) {
@@ -240,6 +241,15 @@ function updateMotif() {
 }
 
 prestationSelect.addEventListener('change', updateMotif);
+
+// Date du jour au format AAAA-MM-JJ (heure locale)
+function getTodayISO() {
+  const now = new Date();
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+// Empêche la sélection d'une date future dans le calendrier
+dateReunionInput.max = getTodayISO();
 
 // Nombre de participants choisi (0 si rien de sélectionné)
 function getNbParticipants() {
@@ -290,7 +300,7 @@ function validateForm() {
   });
   if (missingHeader.length > 0) {
     valid = false;
-    message = "Veuillez compléter tous les champs d'en-tête (Email consultant à Nb de participants).";
+    message = "Veuillez compléter tous les champs d'en-tête (Email AR à Nb de participants).";
   }
 
   // Vérification du format de l'Email AR
@@ -299,9 +309,21 @@ function validateForm() {
   if (emailARValue !== '' && !isValidEmail(emailARValue)) {
     valid = false;
     emailARInput.classList.add('invalid');
-    if (!message) message = "L'adresse Email du consultant n'est pas valide (exemple : prenom.nom@domaine.fr).";
+    if (!message) message = "L'adresse Email AR n'est pas valide (exemple : prenom.nom@domaine.fr).";
   } else {
     emailARInput.classList.remove('invalid');
+  }
+
+  // Vérification de la date de réunion (doit être <= date du jour)
+  const todayISO = getTodayISO();
+  dateReunionInput.max = todayISO;
+  const dateValue = dateReunionInput.value;
+  if (dateValue !== '' && dateValue > todayISO) {
+    valid = false;
+    dateReunionInput.classList.add('invalid');
+    if (!message) message = "La date de réunion doit être inférieure ou égale à la date du jour.";
+  } else {
+    dateReunionInput.classList.remove('invalid');
   }
 
   // Vérification des lignes participants affichées
@@ -394,7 +416,7 @@ genBtn.addEventListener('click', () => {
   const emailAR = document.getElementById('emailAR').value.trim();
   const prestation = prestationSelect.value.trim();
   const motif = motifInput.value.trim();
-  const dateReunion = formatDateFR(document.getElementById('dateReunion').value);
+  const dateReunion = formatDateFR(dateReunionInput.value);
   const client = document.getElementById('client').value.trim();
   const dateEnvoiFormulaire = formatTodayFR();
 
