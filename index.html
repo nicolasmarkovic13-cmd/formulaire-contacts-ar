@@ -30,13 +30,14 @@
   .header-fields {
     display: grid;
     grid-template-columns: 160px 1fr;
-    gap: 10px 15px;
-    align-items: center;
-    margin-bottom: 25px;
+    gap: 12px 15px;
+    align-items: start;
+    margin-bottom: 20px;
   }
   .header-fields label {
     font-weight: 600;
     font-size: 14px;
+    padding-top: 7px;
   }
   .header-fields input,
   .header-fields select {
@@ -52,10 +53,38 @@
     color: #555;
     cursor: not-allowed;
   }
-  .header-fields input.invalid {
+  .header-fields input.invalid,
+  .header-fields select.invalid {
     border-color: #d32f2f;
     background: #ffecec;
   }
+  .field-error {
+    color: #b00020;
+    font-size: 12px;
+    margin-top: 3px;
+  }
+  .field-error:empty {
+    display: none;
+  }
+  td .field-error {
+    padding: 0 6px 3px;
+    margin-top: 0;
+  }
+  .hint {
+    color: #666;
+    font-size: 12px;
+    margin-top: 4px;
+  }
+  .notice {
+    display: none;
+    font-size: 13px;
+    margin-bottom: 12px;
+    padding: 8px 10px;
+    border-radius: 4px;
+  }
+  .notice.show { display: block; }
+  .notice-ok { background: #e8f5e9; color: #256428; }
+  .notice-warn { background: #fff4e5; color: #8a5300; }
   table {
     width: 100%;
     border-collapse: collapse;
@@ -71,6 +100,7 @@
   td {
     border: 1px solid #ddd;
     padding: 3px;
+    vertical-align: top;
   }
   td.label {
     background: #f0f0f0;
@@ -88,38 +118,9 @@
   td input:focus {
     outline: 2px solid #4a90d9;
   }
-  .row-invalid td input {
-    background: #ffecec;
-  }
   td input.invalid {
     background: #ffecec;
     outline: 1px solid #d32f2f;
-  }
-  #genBtn {
-    display: block;
-    width: 100%;
-    padding: 12px;
-    font-size: 15px;
-    font-weight: 600;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    background: #2e7d32;
-    color: #fff;
-    transition: background 0.2s;
-  }
-  #genBtn:disabled {
-    background: #b0b0b0;
-    cursor: not-allowed;
-  }
-  #genBtn:not(:disabled):hover {
-    background: #256428;
-  }
-  #status {
-    margin-top: 12px;
-    font-size: 13px;
-    color: #b00020;
-    min-height: 18px;
   }
   .table-wrap {
     max-height: 500px;
@@ -136,6 +137,46 @@
     top: 0;
     z-index: 1;
   }
+  .actions {
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    border-top: 1px solid #eee;
+    padding: 12px 0 4px;
+    z-index: 5;
+  }
+  #status {
+    font-size: 13px;
+    margin-bottom: 8px;
+    min-height: 18px;
+  }
+  #status.status-ok { color: #2e7d32; }
+  #status.status-warn { color: #8a5300; }
+  #status.status-error { color: #b00020; }
+  #goFirst {
+    margin-left: 6px;
+    color: #1a5fb4;
+    cursor: pointer;
+  }
+  #genBtn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background: #2e7d32;
+    color: #fff;
+    transition: background 0.2s;
+  }
+  #genBtn.is-disabled {
+    background: #b0b0b0;
+  }
+  #genBtn:not(.is-disabled):hover {
+    background: #256428;
+  }
 </style>
 </head>
 <body>
@@ -145,32 +186,51 @@
 
   <div class="header-fields">
     <label for="emailAR">Email AR :</label>
-    <input type="text" id="emailAR" placeholder="Adresse email AR">
+    <div class="field">
+      <input type="text" id="emailAR" placeholder="Adresse email AR">
+      <div class="field-error"></div>
+    </div>
 
     <label for="prestation">Prestation :</label>
-    <select id="prestation">
-      <option value="">-- Sélectionner --</option>
-      <option value="ART">ART</option>
-      <option value="ARC">ARC</option>
-      <option value="DDT">DDT</option>
-      <option value="BCC">BCC</option>
-      <option value="Alternance">Alternance</option>
-    </select>
+    <div class="field">
+      <select id="prestation">
+        <option value="">-- Sélectionner --</option>
+        <option value="ART">ART</option>
+        <option value="ARC">ARC</option>
+        <option value="DDT">DDT</option>
+        <option value="BCC">BCC</option>
+        <option value="Alternance">Alternance</option>
+      </select>
+      <div class="field-error"></div>
+    </div>
 
     <label for="motif">Motif :</label>
-    <input type="text" id="motif" placeholder="Motif" readonly>
+    <div class="field">
+      <input type="text" id="motif" placeholder="Motif" readonly>
+    </div>
 
     <label for="dateReunion">Date réunion :</label>
-    <input type="date" id="dateReunion">
+    <div class="field">
+      <input type="date" id="dateReunion">
+      <div class="field-error"></div>
+    </div>
 
     <label for="client">Client :</label>
-    <input type="text" id="client" placeholder="Client">
+    <div class="field">
+      <input type="text" id="client" placeholder="Client">
+      <div class="field-error"></div>
+    </div>
 
     <label for="nbParticipants">Nb de participants :</label>
-    <select id="nbParticipants">
-      <option value="">-- Sélectionner --</option>
-    </select>
+    <div class="field">
+      <select id="nbParticipants">
+        <option value="">-- Sélectionner --</option>
+      </select>
+      <div class="field-error"></div>
+      </div>
   </div>
+
+  <div id="notice" class="notice"></div>
 
   <div class="table-wrap" id="tableWrap" style="display:none;">
     <table>
@@ -187,18 +247,44 @@
     </table>
   </div>
 
-  <button id="genBtn" disabled>Générer le fichier Excel</button>
-  <div id="status"></div>
+  <div class="actions">
+    <div id="status"><span id="statusText"></span><a id="goFirst" href="#" style="display:none;">Aller au champ concerné</a></div>
+    <button id="genBtn" class="is-disabled" aria-disabled="true">Générer le fichier Excel</button>
+  </div>
 </div>
 
 <script>
+// ---------- Paramètres ----------
 const NB_PARTICIPANTS_MAX = 20;
-const tbody = document.getElementById('participantsBody');
-const nbSelect = document.getElementById('nbParticipants');
-const tableWrap = document.getElementById('tableWrap');
-const dateReunionInput = document.getElementById('dateReunion');
+const ANCIENNETE_MAX_MOIS = 12;               // date de réunion : au plus 12 mois dans le passé
+const INTERDIRE_AR_DANS_PARTICIPANTS = true;  // true : l'Email AR ne peut pas figurer parmi les participants
 
-// Remplissage du menu déroulant (1 à 20)
+// ---------- Éléments ----------
+const tbody = document.getElementById('participantsBody');
+const tableWrap = document.getElementById('tableWrap');
+const nbSelect = document.getElementById('nbParticipants');
+const emailARInput = document.getElementById('emailAR');
+const prestationSelect = document.getElementById('prestation');
+const motifInput = document.getElementById('motif');
+const dateReunionInput = document.getElementById('dateReunion');
+const clientInput = document.getElementById('client');
+const genBtn = document.getElementById('genBtn');
+const statusDiv = document.getElementById('status');
+const statusText = document.getElementById('statusText');
+const goFirstLink = document.getElementById('goFirst');
+const noticeDiv = document.getElementById('notice');
+
+const HEADER_FIELDS = [
+  { el: emailARInput, label: 'Email AR' },
+  { el: prestationSelect, label: 'Prestation' },
+  { el: dateReunionInput, label: 'Date réunion' },
+  { el: clientInput, label: 'Client' },
+  { el: nbSelect, label: 'Nb de participants' }
+];
+
+let submitAttempted = false;
+
+// ---------- Construction du formulaire ----------
 for (let i = 1; i <= NB_PARTICIPANTS_MAX; i++) {
   const opt = document.createElement('option');
   opt.value = i;
@@ -206,25 +292,18 @@ for (let i = 1; i <= NB_PARTICIPANTS_MAX; i++) {
   nbSelect.appendChild(opt);
 }
 
-// Création de toutes les lignes (masquées par défaut)
 for (let i = 1; i <= NB_PARTICIPANTS_MAX; i++) {
   const tr = document.createElement('tr');
   tr.dataset.rowIndex = i;
   tr.style.display = 'none';
   tr.innerHTML = `
     <td class="label">Participant ${i}</td>
-    <td><input type="text" class="nom" data-row="${i}"></td>
-    <td><input type="text" class="prenom" data-row="${i}"></td>
-    <td><input type="text" class="email" data-row="${i}"></td>
+    <td><input type="text" class="nom" data-row="${i}"><div class="field-error"></div></td>
+    <td><input type="text" class="prenom" data-row="${i}"><div class="field-error"></div></td>
+    <td><input type="text" class="email" data-row="${i}"><div class="field-error"></div></td>
   `;
   tbody.appendChild(tr);
 }
-
-const headerIds = ['emailAR', 'prestation', 'motif', 'dateReunion', 'client', 'nbParticipants'];
-const genBtn = document.getElementById('genBtn');
-const statusDiv = document.getElementById('status');
-const prestationSelect = document.getElementById('prestation');
-const motifInput = document.getElementById('motif');
 
 const MOTIF_MAP = {
   'ART': 'Recrutement',
@@ -234,150 +313,27 @@ const MOTIF_MAP = {
   'BCC': 'Rendez-vous BCC'
 };
 
-function updateMotif() {
-  const val = prestationSelect.value;
-  motifInput.value = MOTIF_MAP[val] || '';
-  validateForm();
+// ---------- Utilitaires dates ----------
+function pad(n) {
+  return n.toString().padStart(2, '0');
 }
 
-prestationSelect.addEventListener('change', updateMotif);
+function toISO(d) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
 
-// Date du jour au format AAAA-MM-JJ (heure locale)
 function getTodayISO() {
+  return toISO(new Date());
+}
+
+// Date minimale autorisée (aujourd'hui moins ANCIENNETE_MAX_MOIS mois)
+function getMinDateISO() {
   const now = new Date();
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const d = new Date(now.getFullYear(), now.getMonth() - ANCIENNETE_MAX_MOIS, 1);
+  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(now.getDate(), lastDay));
+  return toISO(d);
 }
-
-// Empêche la sélection d'une date future dans le calendrier
-dateReunionInput.max = getTodayISO();
-
-// Nombre de participants choisi (0 si rien de sélectionné)
-function getNbParticipants() {
-  return parseInt(nbSelect.value, 10) || 0;
-}
-
-// Affiche uniquement le nombre de lignes choisi
-function updateParticipantRows() {
-  const nb = getNbParticipants();
-  document.querySelectorAll('#participantsBody tr').forEach((tr, index) => {
-    tr.style.display = (index < nb) ? '' : 'none';
-  });
-  tableWrap.style.display = nb > 0 ? '' : 'none';
-  validateForm();
-}
-
-nbSelect.addEventListener('change', updateParticipantRows);
-
-// Ne retourne que les lignes actuellement affichées
-function getParticipantRows() {
-  const nb = getNbParticipants();
-  const rows = [];
-  document.querySelectorAll('#participantsBody tr').forEach((tr, index) => {
-    if (index >= nb) return;
-    const nom = tr.querySelector('.nom').value.trim();
-    const prenom = tr.querySelector('.prenom').value.trim();
-    const email = tr.querySelector('.email').value.trim();
-    const filledCount = [nom, prenom, email].filter(v => v !== '').length;
-    rows.push({ tr, nom, prenom, email, filledCount });
-  });
-  return rows;
-}
-
-function isValidEmail(value) {
-  // Format : texte@domaine.extension, sans espace, extension de 2 caractères minimum
-  const regex = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9\-]+(\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,}$/;
-  return regex.test(value);
-}
-
-function validateForm() {
-  let valid = true;
-  let message = '';
-
-  // Vérification des champs d'en-tête
-  const missingHeader = headerIds.filter(id => {
-    const el = document.getElementById(id);
-    return el.value.trim() === '';
-  });
-  if (missingHeader.length > 0) {
-    valid = false;
-    message = "Veuillez compléter tous les champs d'en-tête (Email AR à Nb de participants).";
-  }
-
-  // Vérification du format de l'Email AR
-  const emailARInput = document.getElementById('emailAR');
-  const emailARValue = emailARInput.value.trim();
-  if (emailARValue !== '' && !isValidEmail(emailARValue)) {
-    valid = false;
-    emailARInput.classList.add('invalid');
-    if (!message) message = "L'adresse Email AR n'est pas valide (exemple : prenom.nom@domaine.fr).";
-  } else {
-    emailARInput.classList.remove('invalid');
-  }
-
-  // Vérification de la date de réunion (doit être <= date du jour)
-  const todayISO = getTodayISO();
-  dateReunionInput.max = todayISO;
-  const dateValue = dateReunionInput.value;
-  if (dateValue !== '' && dateValue > todayISO) {
-    valid = false;
-    dateReunionInput.classList.add('invalid');
-    if (!message) message = "La date de réunion doit être inférieure ou égale à la date du jour.";
-  } else {
-    dateReunionInput.classList.remove('invalid');
-  }
-
-  // Vérification des lignes participants affichées
-  const rows = getParticipantRows();
-  let hasIncompleteRow = false;
-  let hasInvalidEmail = false;
-  let completeRowsCount = 0;
-
-  rows.forEach(r => {
-    const emailInput = r.tr.querySelector('.email');
-
-    // Format de l'email si renseigné
-    if (r.email !== '' && !isValidEmail(r.email)) {
-      hasInvalidEmail = true;
-      emailInput.classList.add('invalid');
-    } else {
-      emailInput.classList.remove('invalid');
-    }
-
-    if (r.filledCount === 3) {
-      completeRowsCount++;
-      r.tr.classList.remove('row-invalid');
-    } else {
-      // Toute ligne affichée doit être entièrement remplie
-      hasIncompleteRow = true;
-      if (r.filledCount > 0) {
-        r.tr.classList.add('row-invalid');
-      } else {
-        r.tr.classList.remove('row-invalid');
-      }
-    }
-  });
-
-  if (rows.length > 0 && hasIncompleteRow) {
-    valid = false;
-    if (!message) message = `Veuillez renseigner Nom, Prénom et Email pour les ${rows.length} participant(s) (${completeRowsCount}/${rows.length} complété(s)).`;
-  }
-
-  if (hasInvalidEmail) {
-    valid = false;
-    if (!message) message = "Une ou plusieurs adresses email de participants sont invalides.";
-  }
-
-  genBtn.disabled = !valid;
-  statusDiv.textContent = valid ? '' : message;
-
-  return { valid, completeRowsCount };
-}
-
-// Ecouteurs sur tous les champs
-document.querySelectorAll('input, select').forEach(input => {
-  input.addEventListener('input', validateForm);
-  input.addEventListener('change', validateForm);
-});
 
 function formatDateFR(dateStr) {
   if (!dateStr) return '';
@@ -385,17 +341,9 @@ function formatDateFR(dateStr) {
   return `${d}/${m}/${y}`;
 }
 
-// Formate la date du jour (Date object) en JJ/MM/AAAA
 function formatTodayFR() {
   const now = new Date();
-  const jj = pad(now.getDate());
-  const mm = pad(now.getMonth() + 1);
-  const aaaa = now.getFullYear();
-  return `${jj}/${mm}/${aaaa}`;
-}
-
-function pad(n) {
-  return n.toString().padStart(2, '0');
+  return `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`;
 }
 
 function buildFileName() {
@@ -409,24 +357,352 @@ function buildFileName() {
   return `Data_import_contacts_${jj}${mm}${aa}-${hh}${min}${ss}.xlsx`;
 }
 
-genBtn.addEventListener('click', () => {
-  const { valid } = validateForm();
-  if (!valid) return;
+// ---------- Normalisation des saisies ----------
+// Supprime les caractères invisibles, remplace les espaces spéciaux, réduit les espaces multiples
+function cleanSpaces(s) {
+  return String(s || '')
+    .replace(/[\u200B-\u200D\u2060\uFEFF]/g, '')
+    .replace(/[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
-  const emailAR = document.getElementById('emailAR').value.trim();
+// Gère "Nom Prénom <adresse@domaine.fr>", "mailto:", ponctuation finale, majuscules
+function normalizeEmail(s) {
+  let v = cleanSpaces(s);
+  const m = v.match(/<\s*([^<>\s]+)\s*>/);
+  if (m) v = m[1];
+  v = v.replace(/^mailto:/i, '').replace(/[\s;,]+$/g, '').replace(/^[\s;,]+/g, '');
+  return v.toLowerCase();
+}
+
+function normalizeNom(s) {
+  return cleanSpaces(s).toUpperCase();
+}
+
+// Initiale majuscule après début, espace, tiret ou apostrophe
+function normalizePrenom(s) {
+  return cleanSpaces(s)
+    .toLowerCase()
+    .replace(/(^|[\s\-'’])(\p{L})/gu, (m, sep, letter) => sep + letter.toUpperCase());
+}
+
+// Applique la normalisation adaptée au champ (met à jour la valeur affichée)
+function normalizeInput(el) {
+  let v = el.value;
+  if (el === emailARInput || el.classList.contains('email')) v = normalizeEmail(v);
+  else if (el.classList.contains('nom')) v = normalizeNom(v);
+  else if (el.classList.contains('prenom')) v = normalizePrenom(v);
+  else if (el === clientInput) v = cleanSpaces(v);
+  else return;
+  if (v !== el.value) el.value = v;
+}
+
+function isValidEmail(value) {
+  // Format : texte@domaine.extension, sans espace, extension de 2 caractères minimum
+  const regex = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9\-]+(\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,}$/;
+  return regex.test(value);
+}
+
+// ---------- Lignes participants ----------
+function getNbParticipants() {
+  return parseInt(nbSelect.value, 10) || 0;
+}
+
+function updateParticipantRows() {
+  const nb = getNbParticipants();
+  tbody.querySelectorAll('tr').forEach((tr, index) => {
+    tr.style.display = (index < nb) ? '' : 'none';
+  });
+  tableWrap.style.display = nb > 0 ? '' : 'none';
+  validateForm();
+}
+
+// Ne retourne que les lignes affichées, avec valeurs normalisées
+function getParticipantRows() {
+  const nb = getNbParticipants();
+  const rows = [];
+  tbody.querySelectorAll('tr').forEach((tr, index) => {
+    if (index >= nb) return;
+    const inputs = {
+      nom: tr.querySelector('.nom'),
+      prenom: tr.querySelector('.prenom'),
+      email: tr.querySelector('.email')
+    };
+    const nom = normalizeNom(inputs.nom.value);
+    const prenom = normalizePrenom(inputs.prenom.value);
+    const email = normalizeEmail(inputs.email.value);
+    const filledCount = [nom, prenom, email].filter(v => v !== '').length;
+    rows.push({ tr, index: index + 1, inputs, nom, prenom, email, filledCount });
+  });
+  return rows;
+}
+
+// ---------- Contrôles ----------
+function collectErrors() {
+  const errors = [];
+  const add = (el, label, msg, rowIndex) => errors.push({ el, label, msg, rowIndex });
+
+  // Email AR
+  const arEmail = normalizeEmail(emailARInput.value);
+  if (arEmail === '') {
+    add(emailARInput, 'Email AR', 'Champ obligatoire');
+  } else if (!isValidEmail(arEmail)) {
+    add(emailARInput, 'Email AR', "Adresse email invalide (exemple : prenom.nom@domaine.fr)");
+  }
+
+  // Prestation
+  if (prestationSelect.value === '') {
+    add(prestationSelect, 'Prestation', 'Veuillez sélectionner une prestation');
+  }
+
+  // Date de réunion : <= aujourd'hui et pas plus ancienne que ANCIENNETE_MAX_MOIS mois
+  const todayISO = getTodayISO();
+  const minISO = getMinDateISO();
+  dateReunionInput.max = todayISO;
+  dateReunionInput.min = minISO;
+  const dateValue = dateReunionInput.value;
+  if (dateValue === '') {
+    add(dateReunionInput, 'Date réunion', 'Champ obligatoire');
+  } else if (!/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+    add(dateReunionInput, 'Date réunion', 'Date invalide');
+  } else if (dateValue > todayISO) {
+    add(dateReunionInput, 'Date réunion', 'La date doit être inférieure ou égale à la date du jour');
+  } else if (dateValue < minISO) {
+    add(dateReunionInput, 'Date réunion', `Date trop ancienne (avant le ${formatDateFR(minISO)}, soit plus de ${ANCIENNETE_MAX_MOIS} mois)`);
+  }
+
+  // Client
+  if (cleanSpaces(clientInput.value) === '') {
+    add(clientInput, 'Client', 'Champ obligatoire');
+  }
+
+  // Nombre de participants
+  if (getNbParticipants() === 0) {
+    add(nbSelect, 'Nb de participants', 'Veuillez choisir le nombre de participants');
+  }
+
+  // Participants affichés
+  const rows = getParticipantRows();
+  const emailMap = new Map();
+
+  rows.forEach(r => {
+    const n = r.index;
+    if (r.nom === '') add(r.inputs.nom, `Participant ${n} – Nom`, 'Requis', n);
+    if (r.prenom === '') add(r.inputs.prenom, `Participant ${n} – Prénom`, 'Requis', n);
+
+    const emailLabel = `Participant ${n} – Email`;
+    if (r.email === '') {
+      add(r.inputs.email, emailLabel, 'Requis', n);
+    } else if (!isValidEmail(r.email)) {
+      add(r.inputs.email, emailLabel, 'Email invalide (exemple : prenom.nom@domaine.fr)', n);
+    } else {
+      if (!emailMap.has(r.email)) emailMap.set(r.email, []);
+      emailMap.get(r.email).push(r);
+      if (INTERDIRE_AR_DANS_PARTICIPANTS && arEmail === r.email) {
+        add(r.inputs.email, emailLabel, "Identique à l'Email AR", n);
+      }
+    }
+  });
+
+  // Doublons d'emails entre participants
+  emailMap.forEach(list => {
+    if (list.length > 1) {
+      list.forEach(r => {
+        const others = list.filter(o => o !== r).map(o => o.index).join(', ');
+        add(r.inputs.email, `Participant ${r.index} – Email`, `Doublon : même adresse que Participant ${others}`, r.index);
+      });
+    }
+  });
+
+  // Tri dans l'ordre d'affichage du formulaire
+  const order = [
+    ...HEADER_FIELDS.map(h => h.el),
+    ...rows.flatMap(r => [r.inputs.nom, r.inputs.prenom, r.inputs.email])
+  ];
+  errors.sort((a, b) => order.indexOf(a.el) - order.indexOf(b.el));
+
+  return { errors, rows };
+}
+
+// ---------- Affichage ----------
+function render(errors, rows) {
+  const valid = errors.length === 0;
+
+  // Premier message par champ
+  const byEl = new Map();
+  errors.forEach(e => { if (!byEl.has(e.el)) byEl.set(e.el, e.msg); });
+
+  // Message affiché sous le champ seulement s'il a été quitté (ou après un clic sur le bouton)
+  const allFields = [...HEADER_FIELDS.map(h => h.el), ...tbody.querySelectorAll('input')];
+  allFields.forEach(el => {
+    const msg = byEl.get(el);
+    const show = !!msg && (submitAttempted || el.dataset.touched === '1');
+    el.classList.toggle('invalid', show);
+    const box = el.parentElement.querySelector('.field-error');
+    if (box) box.textContent = show ? msg : '';
+  });
+
+  // Bouton
+  genBtn.classList.toggle('is-disabled', !valid);
+  genBtn.setAttribute('aria-disabled', String(!valid));
+
+  // Message global (toujours visible, près du bouton)
+  if (valid) {
+    statusText.textContent = `Prêt à générer : ${rows.length} contact(s) à exporter.`;
+    statusDiv.className = 'status-ok';
+    goFirstLink.style.display = 'none';
+  } else {
+    const issues = new Set(errors.map(e => e.rowIndex ? 'r' + e.rowIndex : e.el.id)).size;
+    const first = errors[0];
+    statusText.textContent = submitAttempted
+      ? `Génération impossible : ${issues} point(s) à corriger. Premier point : ${first.label} — ${first.msg}`
+      : `Il reste ${issues} point(s) à compléter ou corriger. Prochain point : ${first.label} — ${first.msg}`;
+    statusDiv.className = submitAttempted ? 'status-error' : 'status-warn';
+    goFirstLink.style.display = '';
+  }
+}
+
+function validateForm() {
+  const { errors, rows } = collectErrors();
+  render(errors, rows);
+  return { valid: errors.length === 0, errors, rows };
+}
+
+function goToFirstError() {
+  submitAttempted = true;
+  const { errors } = validateForm();
+  if (errors.length) {
+    const el = errors[0].el;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.focus({ preventScroll: true });
+  }
+}
+
+function showNotice(text, kind) {
+  noticeDiv.textContent = text;
+  noticeDiv.className = `notice show ${kind === 'warn' ? 'notice-warn' : 'notice-ok'}`;
+  clearTimeout(showNotice._t);
+  showNotice._t = setTimeout(() => { noticeDiv.className = 'notice'; }, 8000);
+}
+
+// ---------- Collage en masse depuis Excel ----------
+function pasteGrid(target, text) {
+  const cols = ['nom', 'prenom', 'email'];
+  const startCol = cols.findIndex(c => target.classList.contains(c));
+  const startRow = parseInt(target.dataset.row, 10) - 1;
+  if (startCol < 0 || isNaN(startRow)) return;
+
+  const lines = text.replace(/\r\n?/g, '\n').split('\n');
+  while (lines.length && lines[lines.length - 1].trim() === '') lines.pop();
+  let grid = lines.map(l => l.split('\t').map(c => c.replace(/^"([\s\S]*)"$/, '$1')));
+
+  // Ignore une éventuelle ligne d'en-tête (Nom / Prénom)
+  if (grid.length > 1) {
+    const first = grid[0].map(c => c.trim().toLowerCase());
+    if (first.includes('nom') && (first.includes('prénom') || first.includes('prenom'))) grid.shift();
+  }
+  if (grid.length === 0) return;
+
+  const filled = Math.min(grid.length, NB_PARTICIPANTS_MAX - startRow);
+  const ignored = grid.length - filled;
+
+  // Ajuste le nombre de participants (uniquement à la hausse)
+  const needed = startRow + filled;
+  let adjusted = false;
+  if (getNbParticipants() < needed) {
+    nbSelect.value = String(needed);
+    nbSelect.dataset.touched = '1';
+    adjusted = true;
+    updateParticipantRows();
+  }
+
+  const trs = tbody.querySelectorAll('tr');
+  for (let r = 0; r < filled; r++) {
+    const inputs = trs[startRow + r].querySelectorAll('input');
+    for (let c = 0; c < grid[r].length; c++) {
+      const col = startCol + c;
+      if (col > 2) break;
+      inputs[col].value = grid[r][c];
+      normalizeInput(inputs[col]);
+      inputs[col].dataset.touched = '1';
+    }
+  }
+
+  validateForm();
+
+  let msg = `${filled} ligne(s) collée(s) à partir du Participant ${startRow + 1}.`;
+  if (adjusted) msg += ` Nombre de participants ajusté à ${needed}.`;
+  if (ignored > 0) {
+    msg += ` Attention : ${ignored} ligne(s) ignorée(s) (maximum ${NB_PARTICIPANTS_MAX} participants).`;
+  }
+  showNotice(msg, ignored > 0 ? 'warn' : 'ok');
+}
+
+tbody.addEventListener('paste', (e) => {
+  const target = e.target;
+  if (!target.matches('input')) return;
+  const text = (e.clipboardData || window.clipboardData).getData('text');
+  // Collage simple (une seule cellule) : comportement normal
+  if (!/[\t\r\n]/.test(text.replace(/[\r\n]+$/, ''))) return;
+  e.preventDefault();
+  pasteGrid(target, text);
+});
+
+// ---------- Événements ----------
+function isFormField(el) {
+  return el && el.matches && el.matches('#emailAR, #prestation, #dateReunion, #client, #nbParticipants, #participantsBody input');
+}
+
+prestationSelect.addEventListener('change', () => {
+  motifInput.value = MOTIF_MAP[prestationSelect.value] || '';
+});
+
+nbSelect.addEventListener('change', updateParticipantRows);
+
+document.addEventListener('input', (e) => {
+  if (isFormField(e.target)) validateForm();
+});
+
+document.addEventListener('change', (e) => {
+  const el = e.target;
+  if (!isFormField(el)) return;
+  normalizeInput(el);
+  if (el.tagName === 'SELECT') el.dataset.touched = '1';
+  validateForm();
+});
+
+// Les erreurs d'un champ ne s'affichent qu'une fois le champ quitté
+document.addEventListener('focusout', (e) => {
+  if (!isFormField(e.target)) return;
+  e.target.dataset.touched = '1';
+  validateForm();
+});
+
+goFirstLink.addEventListener('click', (e) => {
+  e.preventDefault();
+  goToFirstError();
+});
+
+genBtn.addEventListener('click', () => {
+  const result = validateForm();
+  if (!result.valid) {
+    goToFirstError();
+    return;
+  }
+
+  const emailAR = normalizeEmail(emailARInput.value);
   const prestation = prestationSelect.value.trim();
   const motif = motifInput.value.trim();
   const dateReunion = formatDateFR(dateReunionInput.value);
-  const client = document.getElementById('client').value.trim();
+  const client = cleanSpaces(clientInput.value);
   const dateEnvoiFormulaire = formatTodayFR();
-
-  const rows = getParticipantRows().filter(r => r.filledCount === 3);
 
   const data = [
     ['Email_AR', 'Prestation', 'Motif_envoi', 'Date_reunion', 'Client', 'Date_envoi_formulaire', 'Nom', 'Prenom', 'Email']
   ];
 
-  rows.forEach(r => {
+  result.rows.forEach(r => {
     data.push([emailAR, prestation, motif, dateReunion, client, dateEnvoiFormulaire, r.nom, r.prenom, r.email]);
   });
 
@@ -440,7 +716,9 @@ genBtn.addEventListener('click', () => {
   alert(`Le fichier a bien été généré : ${fileName}`);
 });
 
-// Validation initiale
+// ---------- Initialisation ----------
+dateReunionInput.max = getTodayISO();
+dateReunionInput.min = getMinDateISO();
 validateForm();
 </script>
 
