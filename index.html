@@ -145,6 +145,16 @@
     padding: 12px 0 4px;
     z-index: 5;
   }
+  .result-msg {
+    display: none;
+    font-size: 13px;
+    margin-bottom: 8px;
+    padding: 8px 10px;
+    border-radius: 4px;
+  }
+  .result-msg.show { display: block; }
+  .result-ok { background: #e8f5e9; color: #256428; }
+  .result-error { background: #ffecec; color: #b00020; }
   #status {
     font-size: 13px;
     margin-bottom: 8px;
@@ -176,6 +186,90 @@
   }
   #genBtn:not(.is-disabled):hover {
     background: #256428;
+  }
+
+  /* ---------- Fenêtre récapitulative ---------- */
+  dialog#recapDialog {
+    border: none;
+    border-radius: 8px;
+    padding: 0;
+    width: min(760px, 92vw);
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    color: #222;
+    font-family: "Segoe UI", Arial, sans-serif;
+  }
+  dialog#recapDialog::backdrop {
+    background: rgba(0,0,0,0.45);
+  }
+  .recap {
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+    padding: 24px;
+  }
+  .recap h2 {
+    font-size: 18px;
+    margin: 0 0 16px;
+    color: #1f2d3d;
+  }
+  .recap-info {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 6px 15px;
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+  .recap-info .k { font-weight: 600; }
+  .recap-info .v { word-break: break-word; }
+  .recap-table-wrap {
+    overflow: auto;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .recap-table-wrap table { margin-bottom: 0; }
+  .recap-table-wrap td {
+    padding: 5px 8px;
+    font-size: 13px;
+    vertical-align: middle;
+  }
+  .recap-question {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 16px 0;
+  }
+  .recap-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  .recap-btn {
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .recap-btn-secondary {
+    background: #fff;
+    color: #333;
+    border: 1px solid #999;
+  }
+  .recap-btn-secondary:hover { background: #f0f0f0; }
+  .recap-btn-primary {
+    background: #2e7d32;
+    color: #fff;
+    border: 1px solid #2e7d32;
+  }
+  .recap-btn-primary:hover { background: #256428; }
+  .recap-btn-primary:disabled {
+    background: #b0b0b0;
+    border-color: #b0b0b0;
+    cursor: not-allowed;
   }
 </style>
 </head>
@@ -227,7 +321,7 @@
         <option value="">-- Sélectionner --</option>
       </select>
       <div class="field-error"></div>
-      </div>
+    </div>
   </div>
 
   <div id="notice" class="notice"></div>
@@ -248,10 +342,37 @@
   </div>
 
   <div class="actions">
+    <div id="resultMsg" class="result-msg"></div>
     <div id="status"><span id="statusText"></span><a id="goFirst" href="#" style="display:none;">Aller au champ concerné</a></div>
     <button id="genBtn" class="is-disabled" aria-disabled="true">Générer le fichier Excel</button>
   </div>
 </div>
+
+<!-- Fenêtre récapitulative avant génération -->
+<dialog id="recapDialog" aria-labelledby="recapTitle">
+  <div class="recap">
+    <h2 id="recapTitle">Vérification avant génération</h2>
+    <div class="recap-info" id="recapInfo"></div>
+    <div class="recap-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:120px;">Participant</th>
+            <th>Nom</th>
+            <th>Prénom</th>
+            <th>Email</th>
+          </tr>
+        </thead>
+        <tbody id="recapBody"></tbody>
+      </table>
+    </div>
+    <p class="recap-question" id="recapQuestion"></p>
+    <div class="recap-buttons">
+      <button type="button" id="recapCancel" class="recap-btn recap-btn-secondary">Non, modifier</button>
+      <button type="button" id="recapConfirm" class="recap-btn recap-btn-primary">Oui, générer le fichier</button>
+    </div>
+  </div>
+</dialog>
 
 <script>
 // ---------- Paramètres ----------
@@ -273,6 +394,15 @@ const statusDiv = document.getElementById('status');
 const statusText = document.getElementById('statusText');
 const goFirstLink = document.getElementById('goFirst');
 const noticeDiv = document.getElementById('notice');
+const resultMsg = document.getElementById('resultMsg');
+
+// Fenêtre récapitulative
+const recapDialog = document.getElementById('recapDialog');
+const recapInfo = document.getElementById('recapInfo');
+const recapBody = document.getElementById('recapBody');
+const recapQuestion = document.getElementById('recapQuestion');
+const recapCancel = document.getElementById('recapCancel');
+const recapConfirm = document.getElementById('recapConfirm');
 
 const HEADER_FIELDS = [
   { el: emailARInput, label: 'Email AR' },
@@ -283,6 +413,7 @@ const HEADER_FIELDS = [
 ];
 
 let submitAttempted = false;
+let pendingData = null;   // données figées affichées dans la fenêtre récapitulative
 
 // ---------- Construction du formulaire ----------
 for (let i = 1; i <= NB_PARTICIPANTS_MAX; i++) {
@@ -586,6 +717,22 @@ function showNotice(text, kind) {
   showNotice._t = setTimeout(() => { noticeDiv.className = 'notice'; }, 8000);
 }
 
+// Message de résultat (succès / erreur de génération), affiché près du bouton
+function showResult(text, kind) {
+  resultMsg.textContent = text;
+  resultMsg.className = `result-msg show ${kind === 'error' ? 'result-error' : 'result-ok'}`;
+  clearTimeout(showResult._t);
+  if (kind !== 'error') {
+    showResult._t = setTimeout(() => { resultMsg.className = 'result-msg'; }, 10000);
+  }
+}
+
+function clearResult() {
+  clearTimeout(showResult._t);
+  resultMsg.className = 'result-msg';
+  resultMsg.textContent = '';
+}
+
 // ---------- Collage en masse depuis Excel ----------
 function pasteGrid(target, text) {
   const cols = ['nom', 'prenom', 'email'];
@@ -649,6 +796,129 @@ tbody.addEventListener('paste', (e) => {
   pasteGrid(target, text);
 });
 
+// ---------- Génération du fichier et fenêtre récapitulative ----------
+// Fige les données (valeurs normalisées) qui seront affichées puis exportées
+function buildExportData(rows) {
+  return {
+    emailAR: normalizeEmail(emailARInput.value),
+    prestation: prestationSelect.value.trim(),
+    motif: motifInput.value.trim(),
+    dateReunion: formatDateFR(dateReunionInput.value),
+    client: cleanSpaces(clientInput.value),
+    participants: rows.map(r => ({ nom: r.nom, prenom: r.prenom, email: r.email }))
+  };
+}
+
+// Crée et télécharge le fichier Excel, retourne son nom
+function generateFile(data) {
+  if (typeof XLSX === 'undefined') {
+    throw new Error('Bibliothèque XLSX non chargée');
+  }
+  const dateEnvoiFormulaire = formatTodayFR();
+
+  const aoa = [
+    ['Email_AR', 'Prestation', 'Motif_envoi', 'Date_reunion', 'Client', 'Date_envoi_formulaire', 'Nom', 'Prenom', 'Email']
+  ];
+  data.participants.forEach(p => {
+    aoa.push([data.emailAR, data.prestation, data.motif, data.dateReunion, data.client, dateEnvoiFormulaire, p.nom, p.prenom, p.email]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Contacts');
+
+  const fileName = buildFileName();
+  XLSX.writeFile(wb, fileName);
+  return fileName;
+}
+
+function doGenerate(data) {
+  try {
+    const fileName = generateFile(data);
+    showResult(`Le fichier a bien été généré : ${fileName}`, 'ok');
+  } catch (err) {
+    console.error(err);
+    showResult("Erreur : le fichier n'a pas pu être généré (la bibliothèque Excel n'est peut-être pas chargée). Vérifiez la connexion et réessayez.", 'error');
+  }
+}
+
+function openRecap(data) {
+  const n = data.participants.length;
+
+  // Repli si la balise <dialog> n'est pas prise en charge
+  if (typeof recapDialog.showModal !== 'function') {
+    const ok = window.confirm(
+      `Ces informations sont-elles exactes ?\n\nClient : ${data.client}\nDate réunion : ${data.dateReunion}\n${n} contact(s) à exporter.`
+    );
+    if (ok) doGenerate(data);
+    return;
+  }
+
+  pendingData = data;
+
+  // Informations générales
+  recapInfo.textContent = '';
+  const items = [
+    ['Email du consultant', data.emailAR],
+    ['Prestation', data.prestation],
+    ['Motif', data.motif],
+    ['Date réunion', data.dateReunion],
+    ['Client', data.client],
+    ['Nombre de participants', String(n)]
+  ];
+  items.forEach(([label, value]) => {
+    const k = document.createElement('div');
+    k.className = 'k';
+    k.textContent = label + ' :';
+    const v = document.createElement('div');
+    v.className = 'v';
+    v.textContent = value;
+    recapInfo.append(k, v);
+  });
+
+  // Tableau des participants
+  recapBody.textContent = '';
+  data.participants.forEach((p, i) => {
+    const tr = document.createElement('tr');
+    [`Participant ${i + 1}`, p.nom, p.prenom, p.email].forEach((txt, idx) => {
+      const td = document.createElement('td');
+      if (idx === 0) td.className = 'label';
+      td.textContent = txt;
+      tr.appendChild(td);
+    });
+    recapBody.appendChild(tr);
+  });
+
+  recapQuestion.textContent = `Ces informations sont-elles exactes ? Le fichier contiendra ${n} contact(s).`;
+  recapConfirm.disabled = false;
+
+  recapDialog.showModal();
+  recapCancel.focus();   // focus sur « Non, modifier » : un appui réflexe sur Entrée ne confirme pas
+}
+
+recapCancel.addEventListener('click', () => {
+  recapDialog.close();
+});
+
+recapConfirm.addEventListener('click', () => {
+  if (!pendingData) return;          // protège contre un double clic
+  const data = pendingData;
+  pendingData = null;
+  recapConfirm.disabled = true;
+  recapDialog.close();
+  doGenerate(data);
+});
+
+// Clic sur le fond grisé = annulation
+recapDialog.addEventListener('click', (e) => {
+  if (e.target === recapDialog) recapDialog.close();
+});
+
+// Fermeture (Échap, bouton Non, fond grisé) : on oublie les données en attente
+recapDialog.addEventListener('close', () => {
+  pendingData = null;
+});
+
 // ---------- Événements ----------
 function isFormField(el) {
   return el && el.matches && el.matches('#emailAR, #prestation, #dateReunion, #client, #nbParticipants, #participantsBody input');
@@ -685,35 +955,14 @@ goFirstLink.addEventListener('click', (e) => {
 });
 
 genBtn.addEventListener('click', () => {
+  clearResult();
   const result = validateForm();
   if (!result.valid) {
     goToFirstError();
     return;
   }
-
-  const emailAR = normalizeEmail(emailARInput.value);
-  const prestation = prestationSelect.value.trim();
-  const motif = motifInput.value.trim();
-  const dateReunion = formatDateFR(dateReunionInput.value);
-  const client = cleanSpaces(clientInput.value);
-  const dateEnvoiFormulaire = formatTodayFR();
-
-  const data = [
-    ['Email_AR', 'Prestation', 'Motif_envoi', 'Date_reunion', 'Client', 'Date_envoi_formulaire', 'Nom', 'Prenom', 'Email']
-  ];
-
-  result.rows.forEach(r => {
-    data.push([emailAR, prestation, motif, dateReunion, client, dateEnvoiFormulaire, r.nom, r.prenom, r.email]);
-  });
-
-  const ws = XLSX.utils.aoa_to_sheet(data);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Contacts');
-
-  const fileName = buildFileName();
-  XLSX.writeFile(wb, fileName);
-
-  alert(`Le fichier a bien été généré : ${fileName}`);
+  // Formulaire valide : on ouvre le récapitulatif (le fichier n'est généré qu'après confirmation)
+  openRecap(buildExportData(result.rows));
 });
 
 // ---------- Initialisation ----------
