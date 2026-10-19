@@ -144,8 +144,8 @@
   <h1>Formulaire d'import de contacts</h1>
 
   <div class="header-fields">
-    <label for="emailAR">Email AR :</label>
-    <input type="text" id="emailAR" placeholder="Adresse email AR">
+    <label for="emailAR">Email Consultant :</label>
+    <input type="text" id="emailAR" placeholder="Adresse email du consultant">
 
     <label for="prestation">Prestation :</label>
     <select id="prestation">
@@ -290,7 +290,7 @@ function validateForm() {
   });
   if (missingHeader.length > 0) {
     valid = false;
-    message = "Veuillez compléter tous les champs d'en-tête (Email AR à Nb de participants).";
+    message = "Veuillez compléter tous les champs d'en-tête (Email consultant à Nb de participants).";
   }
 
   // Vérification du format de l'Email AR
@@ -299,7 +299,7 @@ function validateForm() {
   if (emailARValue !== '' && !isValidEmail(emailARValue)) {
     valid = false;
     emailARInput.classList.add('invalid');
-    if (!message) message = "L'adresse Email AR n'est pas valide (exemple : prenom.nom@domaine.fr).";
+    if (!message) message = "L'adresse Email du consultant n'est pas valide (exemple : prenom.nom@domaine.fr).";
   } else {
     emailARInput.classList.remove('invalid');
   }
