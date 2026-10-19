@@ -52,6 +52,10 @@
     color: #555;
     cursor: not-allowed;
   }
+  .header-fields input.invalid {
+    border-color: #d32f2f;
+    background: #ffecec;
+  }
   table {
     width: 100%;
     border-collapse: collapse;
@@ -87,6 +91,10 @@
   .row-invalid td input {
     background: #ffecec;
   }
+  td input.invalid {
+    background: #ffecec;
+    outline: 1px solid #d32f2f;
+  }
   #genBtn {
     display: block;
     width: 100%;
@@ -118,6 +126,10 @@
     overflow-y: auto;
     border: 1px solid #ccc;
     border-radius: 4px;
+    margin-bottom: 20px;
+  }
+  .table-wrap table {
+    margin-bottom: 0;
   }
   table thead th {
     position: sticky;
@@ -153,9 +165,14 @@
 
     <label for="client">Client :</label>
     <input type="text" id="client" placeholder="Client">
+
+    <label for="nbParticipants">Nb de participants :</label>
+    <select id="nbParticipants">
+      <option value="">-- Sélectionner --</option>
+    </select>
   </div>
 
-  <div class="table-wrap">
+  <div class="table-wrap" id="tableWrap" style="display:none;">
     <table>
       <thead>
         <tr>
@@ -175,12 +192,24 @@
 </div>
 
 <script>
-const NB_PARTICIPANTS = 20;
+const NB_PARTICIPANTS_MAX = 20;
 const tbody = document.getElementById('participantsBody');
+const nbSelect = document.getElementById('nbParticipants');
+const tableWrap = document.getElementById('tableWrap');
 
-for (let i = 1; i <= NB_PARTICIPANTS; i++) {
+// Remplissage du menu déroulant (1 à 20)
+for (let i = 1; i <= NB_PARTICIPANTS_MAX; i++) {
+  const opt = document.createElement('option');
+  opt.value = i;
+  opt.textContent = i;
+  nbSelect.appendChild(opt);
+}
+
+// Création de toutes les lignes (masquées par défaut)
+for (let i = 1; i <= NB_PARTICIPANTS_MAX; i++) {
   const tr = document.createElement('tr');
   tr.dataset.rowIndex = i;
+  tr.style.display = 'none';
   tr.innerHTML = `
     <td class="label">Participant ${i}</td>
     <td><input type="text" class="nom" data-row="${i}"></td>
@@ -190,7 +219,7 @@ for (let i = 1; i <= NB_PARTICIPANTS; i++) {
   tbody.appendChild(tr);
 }
 
-const headerIds = ['emailAR', 'prestation', 'motif', 'dateReunion', 'client'];
+const headerIds = ['emailAR', 'prestation', 'motif', 'dateReunion', 'client', 'nbParticipants'];
 const genBtn = document.getElementById('genBtn');
 const statusDiv = document.getElementById('status');
 const prestationSelect = document.getElementById('prestation');
@@ -212,9 +241,29 @@ function updateMotif() {
 
 prestationSelect.addEventListener('change', updateMotif);
 
+// Nombre de participants choisi (0 si rien de sélectionné)
+function getNbParticipants() {
+  return parseInt(nbSelect.value, 10) || 0;
+}
+
+// Affiche uniquement le nombre de lignes choisi
+function updateParticipantRows() {
+  const nb = getNbParticipants();
+  document.querySelectorAll('#participantsBody tr').forEach((tr, index) => {
+    tr.style.display = (index < nb) ? '' : 'none';
+  });
+  tableWrap.style.display = nb > 0 ? '' : 'none';
+  validateForm();
+}
+
+nbSelect.addEventListener('change', updateParticipantRows);
+
+// Ne retourne que les lignes actuellement affichées
 function getParticipantRows() {
+  const nb = getNbParticipants();
   const rows = [];
-  document.querySelectorAll('#participantsBody tr').forEach(tr => {
+  document.querySelectorAll('#participantsBody tr').forEach((tr, index) => {
+    if (index >= nb) return;
     const nom = tr.querySelector('.nom').value.trim();
     const prenom = tr.querySelector('.prenom').value.trim();
     const email = tr.querySelector('.email').value.trim();
@@ -222,6 +271,12 @@ function getParticipantRows() {
     rows.push({ tr, nom, prenom, email, filledCount });
   });
   return rows;
+}
+
+function isValidEmail(value) {
+  // Format : texte@domaine.extension, sans espace, extension de 2 caractères minimum
+  const regex = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9\-]+(\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,}$/;
+  return regex.test(value);
 }
 
 function validateForm() {
@@ -235,32 +290,59 @@ function validateForm() {
   });
   if (missingHeader.length > 0) {
     valid = false;
-    message = "Veuillez compléter tous les champs d'en-tête (Email AR à Client).";
+    message = "Veuillez compléter tous les champs d'en-tête (Email AR à Nb de participants).";
   }
 
-  // Vérification des lignes participants
+  // Vérification du format de l'Email AR
+  const emailARInput = document.getElementById('emailAR');
+  const emailARValue = emailARInput.value.trim();
+  if (emailARValue !== '' && !isValidEmail(emailARValue)) {
+    valid = false;
+    emailARInput.classList.add('invalid');
+    if (!message) message = "L'adresse Email AR n'est pas valide (exemple : prenom.nom@domaine.fr).";
+  } else {
+    emailARInput.classList.remove('invalid');
+  }
+
+  // Vérification des lignes participants affichées
   const rows = getParticipantRows();
   let hasIncompleteRow = false;
+  let hasInvalidEmail = false;
   let completeRowsCount = 0;
 
   rows.forEach(r => {
+    const emailInput = r.tr.querySelector('.email');
+
+    // Format de l'email si renseigné
+    if (r.email !== '' && !isValidEmail(r.email)) {
+      hasInvalidEmail = true;
+      emailInput.classList.add('invalid');
+    } else {
+      emailInput.classList.remove('invalid');
+    }
+
     if (r.filledCount === 3) {
       completeRowsCount++;
       r.tr.classList.remove('row-invalid');
-    } else if (r.filledCount > 0) {
-      hasIncompleteRow = true;
-      r.tr.classList.add('row-invalid');
     } else {
-      r.tr.classList.remove('row-invalid');
+      // Toute ligne affichée doit être entièrement remplie
+      hasIncompleteRow = true;
+      if (r.filledCount > 0) {
+        r.tr.classList.add('row-invalid');
+      } else {
+        r.tr.classList.remove('row-invalid');
+      }
     }
   });
 
-  if (hasIncompleteRow) {
+  if (rows.length > 0 && hasIncompleteRow) {
     valid = false;
-    if (!message) message = "Chaque ligne Participant commencée doit avoir Nom, Prénom et Email renseignés.";
-  } else if (completeRowsCount === 0) {
+    if (!message) message = `Veuillez renseigner Nom, Prénom et Email pour les ${rows.length} participant(s) (${completeRowsCount}/${rows.length} complété(s)).`;
+  }
+
+  if (hasInvalidEmail) {
     valid = false;
-    if (!message) message = "Veuillez saisir au moins un participant complet (Nom, Prénom, Email).";
+    if (!message) message = "Une ou plusieurs adresses email de participants sont invalides.";
   }
 
   genBtn.disabled = !valid;
